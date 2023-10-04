@@ -21,11 +21,12 @@ app.use('/*', cors(cors_config), (req: Request, res: Response) => {
 	res.end(JSON.stringify(req.body));
 })
 
+
 const server = app.listen(process.env.API_PORT, () => {
 	const server_info = (server.address() as AddressInfo);
 
 	const host = server_info.address;
 	const port = server_info.port;
-	
+
 	console.log("Example app listening at http://%s:%s", host, port)
 })
