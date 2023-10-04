@@ -1,0 +1,19 @@
+version: '3.3'
+services:
+    mongodb-oc-p7:
+        ports:
+            - '27017:4001'
+        container_name: mongodb-oc-p7
+        restart: always
+        logging:
+            options:
+                max-size: 1g
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=mongoadmin
+            - MONGO_INITDB_ROOT_PASSWORD=bdung
+        image: mongo
+        volumes:
+        - sc-mongo-data:/data/db
+
+volumes:
+  sc-mongo-data:
