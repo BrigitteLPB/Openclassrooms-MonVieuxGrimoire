@@ -1,94 +1,77 @@
 // See https://go.microsoft.com/fwlink/?LinkId=733558
 // for the documentation about the tasks.json format
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"label": "compile",
-			"type": "npm",
-			"script": "compile",
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"dependsOn": [
-				"move assets"
-			]
-		},
-		{
-			"label": "watch",
-			"type": "npm",
-			"script": "watch-dev"
-		},
-		{
-			"label": "run",
-			"type": "npm",
-			"script": "start-dev",
-			"problemMatcher": [
-				"$tsc"
-			],
-			"group": "test"
-		},
-		{
-			"label": "clean",
-			"type": "shell",
-			"group": "none",
-			"problemMatcher": "$go",
-			"windows": {
-				"command": "del",
-				"args": [
-					"${workspaceFolder}\\build",
-					"/f",
-					"/s",
-					"/q"
-				]
-			},
-			"linux": {
-				"command": "rm",
-				"args": [
-					"-r",
-					"${workspaceFolder}/build"
-				]
-			}
-		},
-		{
-			"label": "clean module",
-			"type": "shell",
-			"group": "none",
-			"problemMatcher": "$go",
-			"windows": {
-				"command": "del",
-				"args": [
-					"/f",
-					"/s",
-					"/q",
-					"${workspaceFolder}\\node_modules",
-					"${workspaceFolder}\\package-lock.json"
-				]
-			},
-			"linux": {
-				"command": "rm",
-				"args": [
-					"-r",
-					"${workspaceFolder}/node_modules"
-				]
-			}
-		},
-		{
-			"label": "move assets",
-			"type": "shell",
-			"windows": {
-				"command": "${workspaceFolder}/.vscode/robocopy.cmd"
-			},
-			"linux": {
-				"command": "rsync ..."
-			},
-			"problemMatcher": [
-				"$go"
-			]
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile",
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": ["$tsc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "dependsOn": [
+        // "move assets"
+      ]
+    },
+    {
+      "label": "watch",
+      "type": "npm",
+      "script": "watch-dev"
+    },
+    {
+      "label": "run",
+      "type": "npm",
+      "script": "start-dev",
+      "problemMatcher": ["$tsc"],
+      "group": "test"
+    },
+    {
+      "label": "clean",
+      "type": "shell",
+      "group": "none",
+      "problemMatcher": "$go",
+      "windows": {
+        "command": "del",
+        "args": ["${workspaceFolder}\\build", "/f", "/s", "/q"]
+      },
+      "linux": {
+        "command": "rm",
+        "args": ["-r", "${workspaceFolder}/build"]
+      }
+    },
+    {
+      "label": "clean module",
+      "type": "shell",
+      "group": "none",
+      "problemMatcher": "$go",
+      "windows": {
+        "command": "del",
+        "args": [
+          "/f",
+          "/s",
+          "/q",
+          "${workspaceFolder}\\node_modules",
+          "${workspaceFolder}\\package-lock.json"
+        ]
+      },
+      "linux": {
+        "command": "rm",
+        "args": ["-r", "${workspaceFolder}/node_modules"]
+      }
+    },
+    {
+      "label": "move assets",
+      "type": "shell",
+      "windows": {
+        "command": "${workspaceFolder}/.vscode/robocopy.cmd"
+      },
+      "linux": {
+        "command": "rsync ..."
+      },
+      "problemMatcher": ["$go"]
+    }
+  ]
 }

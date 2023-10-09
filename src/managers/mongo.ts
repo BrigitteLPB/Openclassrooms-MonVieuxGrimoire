@@ -26,7 +26,6 @@ export class MongoManager {
         authSource: "admin",
         readPreference: "primary",
         ssl: false,
-        directConnection: true,
       });
 
       console.log(`Succesfully connected to MongoDB at ${this.host}`);
