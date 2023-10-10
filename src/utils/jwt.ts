@@ -4,14 +4,13 @@ import { Response, Request, NextFunction } from "express";
 export class Authorizer {
   private static private_key: string = process.env.JWT_PRIVATE_SIGN_KEY || "";
 
-  protected static generateToken(id: object) {
-    console.log("payload:", id);
+  public static generateToken(id: object) {
     return jwt.sign(id || {}, Authorizer.private_key, {
       expiresIn: "24h",
     });
   }
 
-  protected static verifyToken(token: string) {
+  public static verifyToken(token: string) {
     try {
       return jwt.verify(token, Authorizer.private_key);
     } catch (e) {
@@ -30,9 +29,6 @@ export class Authorizer {
       res.status(401);
       res.end();
     }
-
-    console.log("checked_token:", checked_token);
-    console.log("req.body:", req.body);
 
     res.locals.auth = checked_token;
     next();
