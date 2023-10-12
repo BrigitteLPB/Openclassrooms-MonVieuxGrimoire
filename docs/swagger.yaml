@@ -1,226 +1,228 @@
 openapi: 3.0.0
 
 info:
-  description: "[OC P7] API backend pour le site Mon Vieux Grimoire"
-  version: 1.0.2
-  title: Mon Vieux Grimoire
-  termsOfService: http://swagger.io/terms/
-  contact:
-    email: lpb.brigitte@gmail.com
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    description: '[OC P7] API backend pour le site Mon Vieux Grimoire'
+    version: 1.0.2
+    title: Mon Vieux Grimoire
+    termsOfService: http://swagger.io/terms/
+    contact:
+        email: lpb.brigitte@gmail.com
+    license:
+        name: Apache 2.0
+        url: http://www.apache.org/licenses/LICENSE-2.0.html
 
 tags:
-  - name: auth
-    description: Endpoints for user sign in and in
-  - name: books
-    description: Endpoints for retrieving and modifying books
+    - name: auth
+      description: Endpoints for user sign in and in
+    - name: books
+      description: Endpoints for retrieving and modifying books
 
 paths:
-  /api/auth/signup:
-    post:
-      tags:
-        - auth
-      description: "Add a new user"
-      requestBody:
-        $ref: "#/components/requestBodies/UserLogin"
-      responses:
-        "200":
-          $ref: "#/components/responses/OkResponse"
+    /api/auth/signup:
+        post:
+            tags:
+                - auth
+            description: 'Add a new user'
+            requestBody:
+                $ref: '#/components/requestBodies/UserLogin'
+            responses:
+                '200':
+                    $ref: '#/components/responses/OkResponse'
 
-  /api/auth/login:
-    post:
-      tags:
-        - auth
-      description: "Login a user and send a connection token"
-      requestBody:
-        $ref: "#/components/requestBodies/UserLogin"
-      responses:
-        "200":
-          description: return User connection information
-          content:
-            application/json:
+    /api/auth/login:
+        post:
+            tags:
+                - auth
+            description: 'Login a user and send a connection token'
+            requestBody:
+                $ref: '#/components/requestBodies/UserLogin'
+            responses:
+                '200':
+                    description: return User connection information
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+
+    /api/books:
+        get:
+            tags:
+                - books
+            description: Get a list of books
+            responses:
+                '200':
+                    $ref: '#/components/responses/BookListRespones'
+        post:
+            tags:
+                - books
+            description: Create a new book, must be logged on
+            security:
+                - bearerAuth: []
+            requestBody:
+                $ref: '#/components/requestBodies/BookRequest'
+            responses:
+                '200':
+                    $ref: '#/components/responses/OkResponse'
+
+    /api/books/{id}:
+        parameters:
+            - name: id
+              in: path
+              description: ID of the book
+              required: true
               schema:
-                $ref: "#/components/schemas/User"
+                  type: string
+                  format: uuid
+        get:
+            tags:
+                - books
+            description: Retrieve a book by it's id
+            responses:
+                '200':
+                    $ref: '#/components/responses/BookRetrieveResponse'
+        put:
+            tags:
+                - books
+            description: Update a book by it's id
+            security:
+                - bearerAuth: []
+            requestBody:
+                $ref: '#/components/requestBodies/BookRequest'
+            responses:
+                '200':
+                    $ref: '#/components/responses/OkResponse '
+        delete:
+            tags:
+                - books
+            description: Remove a book by it's id
+            security:
+                - bearerAuth: []
+            responses:
+                '200':
+                    $ref: '#/components/responses/OkResponse'
 
-  /api/books:
-    get:
-      tags:
-        - books
-      description: Get a list of books
-      responses:
-        "200":
-          $ref: "#/components/responses/BookListRespones"
-    post:
-      tags:
-        - books
-      description: Create a new book, must be logged on
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          $ref: "#/components/responses/OkResponse"
+    /api/books/{id}/rating:
+        post:
+            tags:
+                - books
+            description: Add a rating to a book
+            security:
+                - bearerAuth: []
+            responses:
+                '200':
+                    $ref: '#/components/requestBodies/UserRatingRequest'
 
-  /api/books/{id}:
-    parameters:
-      - name: id
-        in: path
-        description: ID of the book
-        required: true
-        schema:
-          type: string
-          format: uuid
-    get:
-      tags:
-        - books
-      description: Retrieve a book by it's id
-      responses:
-        "200":
-          $ref: "#/components/responses/BookRetrieveResponse"
-    put:
-      tags:
-        - books
-      description: Update a book by it's id
-      security:
-        - bearerAuth: []
-      requestBody:
-        $ref: "#/components/requestBodies/BookRequest"
-      responses:
-        "200":
-          $ref: "#/components/responses/OkResponse "
-    delete:
-      tags:
-        - books
-      description: Remove a book by it's id
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          $ref: "#/components/responses/OkResponse"
-
-  /api/books/{id}/rating:
-    post:
-      tags:
-        - books
-      description: Add a rating to a book
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          $ref: "#/components/requestBodies/UserRatingRequest"
-
-  /api/books/bestrating:
-    get:
-      tags:
-        - books
-      description: Return top 3 best books
-      responses:
-        "200":
-          $ref: "#/components/responses/BookListRespones"
+    /api/books/bestrating:
+        get:
+            tags:
+                - books
+            description: Return top 3 best books
+            responses:
+                '200':
+                    $ref: '#/components/responses/BookListRespones'
 
 servers:
-  - url: https://petstore.swagger.io/v2
+    - url: https://petstore.swagger.io/v2
 
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
+    securitySchemes:
+        BearerAuth:
+            type: http
+            scheme: bearer
 
-  requestBodies:
-    UserLogin:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/User"
-      description: User object for login
-      required: true
+    requestBodies:
+        UserLogin:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/User'
+            description: User object for login
+            required: true
 
-    BookRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Book"
-      description: Book object for creation and update
-      required: true
+        BookRequest:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Book'
+            description: Book object for creation and update
+            required: true
 
-    UserRatingRequest:
-      content:
-        application/json:
-          schema:
+        UserRatingRequest:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            userId:
+                                type: string
+                                format: uuid
+                                readOnly: true
+                            rating:
+                                $ref: '#/components/schemas/Rating'
+            description: Rating body for a book
+            required: true
+
+    responses:
+        BookListRespones:
+            content:
+                application/json:
+                    schema:
+                        type: array
+                        items:
+                            $ref: '#/components/schemas/Book'
+            description: List of books
+
+        BookRetrieveResponse:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/Book'
+            description: Retrieve a single book
+
+        OkResponse:
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        properties:
+                            message:
+                                type: string
+            description: Ok message for a 200
+
+    schemas:
+        Book:
             type: object
             properties:
-              userId:
-                type: string
-                format: uuid
-                readOnly: true
-              rating:
-                $ref: "#/components/schemas/Rating"
-      description: Rating body for a book
-      required: true
+                book:
+                    type: string
+                image:
+                    type: string
+                    format: url
 
-  responses:
-    BookListRespones:
-      content:
-        application/json:
-          schema:
-            type: array
-            items:
-              $ref: "#/components/schemas/Book"
-      description: List of books
-
-    BookRetrieveResponse:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Book"
-      description: Retrieve a single book
-
-    OkResponse:
-      content:
-        application/json:
-          schema:
+        User:
             type: object
+            required:
+                - email
+                - password
             properties:
-              message:
-                type: string
-      description: Ok message for a 200
+                email:
+                    type: string
+                    format: email
+                    writeOnly: true
+                password:
+                    type: string
+                    format: password
+                    writeOnly: true
+                userId:
+                    type: string
+                    format: uuid
+                    readOnly: true
+                token:
+                    type: string
+                    format: token
+                    readOnly: true
 
-  schemas:
-    Book:
-      type: object
-      properties:
-        book:
-          type: string
-        image:
-          type: string
-          format: url
-
-    User:
-      type: object
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          writeOnly: true
-        password:
-          type: string
-          format: password
-          writeOnly: true
-        userId:
-          type: string
-          format: uuid
-          readOnly: true
-        token:
-          type: string
-          format: token
-          readOnly: true
-
-    Rating:
-      type: integer
-      minimum: 0
-      maximum: 5
+        Rating:
+            type: integer
+            minimum: 0
+            maximum: 5
