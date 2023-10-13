@@ -1,7 +1,7 @@
 import { Client } from 'minio';
 import type { Readable as ReadableStream } from 'node:stream';
 
-export class ImageStorage {
+export class FileStorage {
     readonly minioClient: Client;
 
     public constructor(args: {
@@ -59,5 +59,21 @@ export class ImageStorage {
         const { bucketName, filename } = args;
 
         return await this.minioClient.getObject(bucketName, filename);
+    }
+
+    /**
+     * return a presignedURL for 1h to get the desired file
+     * @param args
+     * @returns
+     */
+    public async getFileURL(args: { bucketName: string; filename: string }) {
+        const { bucketName, filename } = args;
+
+        return await this.minioClient.presignedUrl(
+            'GET',
+            bucketName,
+            filename,
+            3600 // 1h
+        );
     }
 }

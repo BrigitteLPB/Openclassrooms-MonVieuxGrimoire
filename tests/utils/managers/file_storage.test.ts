@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import { createReadStream } from 'fs';
-import { ImageStorage } from 'utils/managers/image_storage';
+import { get } from 'http';
+import { FileStorage } from 'utils/managers/file_storage';
 import { v4 } from 'uuid';
 
-let imageStorageManager: ImageStorage;
+let fileStorageManager: FileStorage;
 let bucketName = '';
 
-describe('ImageStorage', () => {
+describe('FileStorage', () => {
     beforeEach(async () => {
-        imageStorageManager = new ImageStorage({
+        fileStorageManager = new FileStorage({
             host: process.env.MINIO_HOST || '',
             port: Number(process.env.MINIO_PORT) || 0,
             accessKey: process.env.MINIO_ACCESS_KEY || '',
@@ -18,35 +19,35 @@ describe('ImageStorage', () => {
         bucketName = `test-${v4()}`;
 
         // add bucket
-        await imageStorageManager.initBucketSafe({
+        await fileStorageManager.initBucketSafe({
             bucketName: bucketName,
         });
     });
 
     afterEach(async () => {
         // remove bucket
-        const objectList = await imageStorageManager.minioClient
+        const objectList = await fileStorageManager.minioClient
             .listObjects(bucketName)
             .toArray();
-        await imageStorageManager.minioClient.removeObjects(
+        await fileStorageManager.minioClient.removeObjects(
             bucketName,
             objectList
         );
-        await imageStorageManager.minioClient.removeBucket(bucketName);
+        await fileStorageManager.minioClient.removeBucket(bucketName);
     });
 
     test('Create a bucket', async () => {
         expect(
-            await imageStorageManager.minioClient.bucketExists(bucketName)
+            await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
     });
 
     test('Add file', async () => {
         expect(
-            await imageStorageManager.minioClient.bucketExists(bucketName)
+            await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
 
-        await imageStorageManager.addFile({
+        await fileStorageManager.addFile({
             bucketName: bucketName,
             serverFilepath: '/data.json',
             localFileStream: createReadStream(
@@ -54,7 +55,7 @@ describe('ImageStorage', () => {
             ),
         });
 
-        const file = await imageStorageManager.minioClient.getObject(
+        const file = await fileStorageManager.minioClient.getObject(
             bucketName,
             '/data.json'
         );
@@ -65,10 +66,10 @@ describe('ImageStorage', () => {
 
     test('Get file', async () => {
         expect(
-            await imageStorageManager.minioClient.bucketExists(bucketName)
+            await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
 
-        await imageStorageManager.addFile({
+        await fileStorageManager.addFile({
             bucketName: bucketName,
             serverFilepath: '/data.json',
             localFileStream: createReadStream(
@@ -76,12 +77,39 @@ describe('ImageStorage', () => {
             ),
         });
 
-        const file = await imageStorageManager.getFile({
+        const file = await fileStorageManager.getFile({
             bucketName: bucketName,
             filename: '/data.json',
         });
         expect(JSON.parse(file.read().toString())).toEqual({
             hello: 'world!',
         });
+    });
+
+    test('Get File URL', async () => {
+        expect(
+            await fileStorageManager.minioClient.bucketExists(bucketName)
+        ).toBe(true);
+
+        await fileStorageManager.addFile({
+            bucketName: bucketName,
+            serverFilepath: '/data.json',
+            localFileStream: createReadStream(
+                './tests/utils/managers/data/my_data.json'
+            ),
+        });
+
+        const fileURL = await fileStorageManager.getFileURL({
+            bucketName: bucketName,
+            filename: '/data.json',
+        });
+
+        const statusCode = await new Promise(function (resolve) {
+            get(fileURL, {}, (res) => {
+                return resolve(res.statusCode);
+            });
+        });
+
+        expect(statusCode).toBe(200);
     });
 });
