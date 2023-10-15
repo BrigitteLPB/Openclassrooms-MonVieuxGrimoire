@@ -3,7 +3,7 @@ import { Schema, model } from 'mongoose';
 export class BookSchema extends Schema {
     constructor() {
         super({
-            userId: { type: String, unique: true, required: true },
+            userId: { type: String },
             title: { type: String },
             author: { type: String },
             imageUrl: { type: String },

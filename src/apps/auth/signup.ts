@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { UserModel } from 'models/user';
 import { Hasher } from 'utils/hasher';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
@@ -6,7 +6,7 @@ import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
 export const SignupMiddleware: ExpressMiddleware = {
     method: HTTPMethod.POST,
     uri: '/auth/signup',
-    middelware: async (req: Request, res: Response) => {
+    middelware: async (req: Request, res: Response, next: NextFunction) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
@@ -22,9 +22,13 @@ export const SignupMiddleware: ExpressMiddleware = {
                 password: await Hasher.getHash(password),
             });
 
-            res.json({
-                message: 'user created succesfully.',
-            });
+            res.locals.body = {
+                ...res.locals.body,
+                ...{
+                    message: 'user created succesfully.',
+                },
+            };
+            return next();
         } catch (e: any) {
             console.log('Error:', e);
             res.status(500);

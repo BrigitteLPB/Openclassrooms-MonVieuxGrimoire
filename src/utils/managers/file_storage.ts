@@ -1,16 +1,65 @@
+import { NextFunction, Request, Response } from 'express';
 import { Client } from 'minio';
-import type { Readable as ReadableStream } from 'node:stream';
+import { Readable as ReadableStream } from 'node:stream';
 
-export class FileStorage {
+export interface FileStorage {
+    /**
+     * add a file to the specified bucket
+     * @param args
+     */
+    addFile: (args: {
+        bucketName: string;
+        serverFilepath: string;
+        localFileStream: ReadableStream;
+    }) => Promise<void>;
+
+    /**
+     * return an object in the storage
+     * @param args
+     */
+    getFile: (args: {
+        bucketName: string;
+        filename: string;
+    }) => Promise<ReadableStream>;
+
+    /**
+     * return a presignedURL for 1h to get the desired file
+     * @param args
+     * @returns
+     */
+    getFileURL: (args: {
+        bucketName: string;
+        filename: string;
+    }) => Promise<string>;
+
+    /**
+     * Send the image field of a multipart request to the S3
+     * Need bookId & userId in the res.locals
+     * @param req
+     * @param res
+     * @param next
+     */
+    processFileMiddleware: (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => Promise<void | Response<any, Record<string, any>>>;
+}
+
+export class S3FileStorage implements FileStorage {
     readonly minioClient: Client;
+    readonly imageBucketName: string;
 
     public constructor(args: {
         host: string;
         port: number;
         accessKey: string;
         secretKey: string;
+        imageBucketName: string;
     }) {
-        const { host, port, accessKey, secretKey } = args;
+        const { host, port, accessKey, secretKey, imageBucketName } = args;
+
+        this.imageBucketName = imageBucketName;
 
         this.minioClient = new Client({
             endPoint: host,
@@ -33,10 +82,6 @@ export class FileStorage {
         }
     }
 
-    /**
-     * add a file to the specified bucket
-     * @param args
-     */
     public async addFile(args: {
         bucketName: string;
         serverFilepath: string;
@@ -51,21 +96,12 @@ export class FileStorage {
         );
     }
 
-    /**
-     * return an object in the storage
-     * @param args
-     */
     public async getFile(args: { bucketName: string; filename: string }) {
         const { bucketName, filename } = args;
 
         return await this.minioClient.getObject(bucketName, filename);
     }
 
-    /**
-     * return a presignedURL for 1h to get the desired file
-     * @param args
-     * @returns
-     */
     public async getFileURL(args: { bucketName: string; filename: string }) {
         const { bucketName, filename } = args;
 
@@ -76,4 +112,52 @@ export class FileStorage {
             3600 // 1h
         );
     }
+
+    public async processFileMiddleware(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        if (
+            req.file?.fieldname == 'image' &&
+            (req.file?.mimetype == 'image/png' ||
+                req.file?.mimetype == 'image/jpeg')
+        ) {
+            console.debug(res.locals.body);
+            const { id, userId } = res.locals.body;
+
+            if (!id || !userId) {
+                res.status(500);
+                return res.json({
+                    error: 'can not upload your image',
+                });
+            }
+
+            const serverUri = `/${userId}/${id}.${req.file?.mimetype.split(
+                '/'
+            )[1]}`;
+
+            await this.addFile({
+                bucketName: this.imageBucketName,
+                serverFilepath: serverUri,
+                localFileStream: ReadableStream.from(req.file?.buffer),
+            });
+
+            res.locals.imageUri = serverUri;
+        }
+
+        return next();
+    }
 }
+
+export const s3FileStorageManager = new S3FileStorage({
+    host: process.env.MINIO_HOST || '',
+    port: Number(process.env.MINIO_PORT) || 0,
+    accessKey: process.env.MINIO_ACCESS_KEY || '',
+    secretKey: process.env.MINIO_SECRET_KEY || '',
+    imageBucketName: 'images',
+});
+
+s3FileStorageManager.initBucketSafe({
+    bucketName: 'images',
+});

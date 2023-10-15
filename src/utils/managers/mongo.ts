@@ -44,3 +44,9 @@ export class MongoManager {
         return this._client;
     }
 }
+
+export const mongoManager = new MongoManager({
+    host: process.env.MONGO_DB_HOST || '',
+    username: process.env.MONGO_DB_USER || '',
+    password: process.env.MONGO_DB_PASSWORD || '',
+});

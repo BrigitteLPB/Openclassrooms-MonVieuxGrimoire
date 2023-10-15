@@ -39,10 +39,10 @@ export class Authorizer {
         res: Response,
         next: NextFunction
     ) {
-        res.send({
-            ...req.body,
+        res.locals.body = {
+            ...res.locals.body,
             ...{ token: Authorizer.generateToken(req.body) },
-        });
+        };
         return next();
     }
 }

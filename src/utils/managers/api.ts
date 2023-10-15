@@ -1,6 +1,7 @@
 import cors, { CorsOptions } from 'cors';
 import express, { Express, RequestHandler } from 'express';
 import { Server } from 'http';
+import multer, { Multer } from 'multer';
 import { AddressInfo } from 'net';
 import { Authorizer } from 'utils/jwt';
 
@@ -12,17 +13,20 @@ export enum HTTPMethod {
     PUT,
     DELETE,
 }
+
 export type ExpressMiddleware = {
     method: HTTPMethod;
     uri: string;
     needAuth?: boolean;
+    useImage?: boolean;
     middelware: RequestHandler | Array<RequestHandler>;
 };
 
 export class ApiManager {
-    protected baseUrl: string | null;
-    protected app: Express;
-    protected corsMiddleware: any;
+    readonly baseUrl: string | null;
+    readonly app: Express;
+    readonly multerUploads: Multer;
+    readonly corsMiddleware: any;
     protected server: Server | undefined = undefined;
 
     public constructor(
@@ -35,12 +39,25 @@ export class ApiManager {
         const { baseUrl, corsConfig, middlewares } = args;
         this.baseUrl = baseUrl || null;
 
+        // express
         this.app = express();
+
+        // multer
+        this.multerUploads = multer({
+            storage: multer.memoryStorage(),
+        });
+
+        // cors
         this.corsMiddleware = cors(corsConfig || {});
 
+        // all custom middlewares
         this.addMiddlewares(middlewares || []);
     }
 
+    /**
+     * Add all middlewares to express
+     * @param middlewares
+     */
     public addMiddlewares(middlewares: Array<ExpressMiddleware>) {
         middlewares.forEach((e) => {
             // get all middlewares
@@ -48,17 +65,30 @@ export class ApiManager {
                 express.json(),
                 this.corsMiddleware,
             ];
+
+            // Image support with multer. Added before express.json
+            if (e.useImage) {
+                middleware_funcs.unshift(this.multerUploads.single('image'));
+            }
+
+            // JWT check
             if (e.needAuth) {
                 middleware_funcs.push(Authorizer.VerifyAuthMiddleWare);
             }
 
+            // all custom middlewares
             if (e.middelware instanceof Array) {
                 middleware_funcs.push.apply(middleware_funcs, e.middelware);
             } else {
                 middleware_funcs.push(e.middelware);
             }
 
-            // get function
+            // add the last middleware for sending req.locals.body
+            middleware_funcs.push((_, res) => {
+                return res.json(res.locals.body || {});
+            });
+
+            // get express function
             var func;
             switch (e.method) {
                 case HTTPMethod.ALL:
@@ -83,12 +113,8 @@ export class ApiManager {
                     break;
             }
 
-            // add middleware to express
+            // add the middleware to express
             if (func) {
-                console.log(
-                    'baseUrl:',
-                    this.baseUrl ? this.baseUrl + e.uri : e.uri
-                ); // DEBUG
                 func(
                     this.baseUrl ? this.baseUrl + e.uri : e.uri,
                     ...middleware_funcs
@@ -97,6 +123,10 @@ export class ApiManager {
         });
     }
 
+    /**
+     * start the express server
+     * @param port
+     */
     public run(port: number | string) {
         this.server = this.app.listen(port, () => {
             if (this.server) {
