@@ -1,10 +1,9 @@
 import { BookModel } from 'models/book';
 import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
-import { s3FileStorageManager } from 'utils/managers/file_storage';
 
-export const RetrieveMiddleware: ExpressMiddleware = {
-    method: HTTPMethod.GET,
+export const DeleteMiddleware: ExpressMiddleware = {
+    method: HTTPMethod.DELETE,
     uri: '/books/:bookId',
     useImage: true,
     middelware: [
@@ -20,7 +19,7 @@ export const RetrieveMiddleware: ExpressMiddleware = {
             }
 
             try {
-                const book = await BookModel.findById(bookId);
+                const book = await BookModel.findByIdAndDelete(bookId);
 
                 if (!book) {
                     res.statusCode = 404;
@@ -32,18 +31,7 @@ export const RetrieveMiddleware: ExpressMiddleware = {
                 res.locals.body = {
                     ...res.locals.body,
                     ...{
-                        id: book._id,
-                        userId: book.userId,
-                        title: book.title,
-                        author: book.author,
-                        imageUrl: await s3FileStorageManager.getFileURL({
-                            bucketName: s3FileStorageManager.imageBucketName,
-                            filename: book.imageUrl,
-                        }),
-                        year: book.year,
-                        genre: book.genre,
-                        ratings: book.ratings,
-                        averageRating: book.averageRating,
+                        message: `Book ${bookId} is deleted`,
                     },
                 };
 
