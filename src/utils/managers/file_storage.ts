@@ -123,7 +123,6 @@ export class S3FileStorage implements FileStorage {
             (req.file?.mimetype == 'image/png' ||
                 req.file?.mimetype == 'image/jpeg')
         ) {
-            console.debug(res.locals.body);
             const { id, userId } = res.locals.body;
 
             if (!id || !userId) {
