@@ -5,7 +5,7 @@ services:
         restart: always
         image: mongo
         ports:
-            - '27017:4001'
+            - ${MONGO_DB_PORT}:27017
         logging:
             options:
                 max-size: 1g
@@ -15,13 +15,13 @@ services:
         volumes:
             - sc-mongo-data:/data/db
 
-    minion-storage-oc-p7:
+    minio-storage-oc-p7:
         container_name: minio-oc-p7
         restart: always
         image: quay.io/minio/minio
         command: minio server /data
         ports:
-            - '27018:9000'
+            - ${MINIO_PORT}:9000
         environment:
             MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
             MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}

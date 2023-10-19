@@ -30,13 +30,18 @@ export const LoginMiddleware: ExpressMiddleware = {
                     });
                 }
 
-                req.body = {
-                    userId: user._id,
+                res.locals.body = {
+                    ...res.locals.body,
+                    ...{
+                        userId: user._id,
+                    },
                 };
+
                 return next();
             } catch (e: any) {
                 console.log('Error:', e);
                 res.status(500);
+
                 return res.json({
                     error: 'can not create the user',
                 });

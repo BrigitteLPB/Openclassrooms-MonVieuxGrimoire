@@ -1,22 +1,27 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import express from 'express';
 import { createReadStream } from 'fs';
+import { readFile } from 'fs/promises';
 import { get } from 'http';
-import { FileStorage } from 'utils/managers/file_storage';
+import multer from 'multer';
+import request from 'supertest';
+import { S3FileStorage } from 'utils/managers/file_storage';
 import { v4 } from 'uuid';
 
-let fileStorageManager: FileStorage;
+let fileStorageManager: S3FileStorage;
 let bucketName = '';
 
 describe('FileStorage', () => {
     beforeEach(async () => {
-        fileStorageManager = new FileStorage({
+        bucketName = `test-${v4()}`;
+
+        fileStorageManager = new S3FileStorage({
             host: process.env.MINIO_HOST || '',
             port: Number(process.env.MINIO_PORT) || 0,
             accessKey: process.env.MINIO_ACCESS_KEY || '',
             secretKey: process.env.MINIO_SECRET_KEY || '',
+            imageBucketName: bucketName,
         });
-
-        bucketName = `test-${v4()}`;
 
         // add bucket
         await fileStorageManager.initBucketSafe({
@@ -25,14 +30,17 @@ describe('FileStorage', () => {
     });
 
     afterEach(async () => {
-        // remove bucket
+        // clear all files
         const objectList = await fileStorageManager.minioClient
-            .listObjects(bucketName)
+            .listObjects(bucketName, undefined, true)
             .toArray();
+
         await fileStorageManager.minioClient.removeObjects(
             bucketName,
             objectList
         );
+
+        // remove bucket
         await fileStorageManager.minioClient.removeBucket(bucketName);
     });
 
@@ -111,5 +119,65 @@ describe('FileStorage', () => {
         });
 
         expect(statusCode).toBe(200);
+    });
+
+    test('Multer StorageEngine', async () => {
+        expect(
+            await fileStorageManager.minioClient.bucketExists(bucketName)
+        ).toBe(true);
+
+        const apiRoute = `/${v4()}`;
+        const bookId = v4();
+        const userId = v4();
+        const expressServer = express();
+        const multerUploads = multer({
+            storage: multer.memoryStorage(),
+        });
+
+        // set a basic express router
+        expressServer.post(
+            apiRoute,
+            multerUploads.single('image'),
+            (_, res, next) => {
+                res.locals.body = {
+                    id: bookId,
+                    userId: userId,
+                };
+                next();
+            },
+            fileStorageManager.processFileMiddleware.bind(fileStorageManager),
+            async (_, res) => {
+                res.json({
+                    imageUrl: res.locals.imageUri,
+                });
+            }
+        );
+
+        // request the data
+        const response = await request(expressServer)
+            .post(apiRoute)
+            .field(
+                'book',
+                JSON.stringify({
+                    title: '',
+                    author: '',
+                    year: 2010,
+                    userId: '',
+                    genre: '',
+                })
+            )
+            .attach('image', './tests/utils/managers/data/image.png')
+            .set('Content-Type', 'multipart/form-data');
+
+        // search the file on S3
+        const s3File = await fileStorageManager.minioClient.getObject(
+            bucketName,
+            response.body.imageUrl
+        );
+
+        // get the local file
+        const file = await readFile('./tests/utils/managers/data/image.png');
+
+        expect(s3File.read()).toEqual(file);
     });
 });

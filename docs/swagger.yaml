@@ -59,7 +59,7 @@ paths:
             security:
                 - bearerAuth: []
             requestBody:
-                $ref: '#/components/requestBodies/BookRequest'
+                $ref: '#/components/requestBodies/BookCreateRequest'
             responses:
                 '200':
                     $ref: '#/components/responses/OkResponse'
@@ -87,7 +87,7 @@ paths:
             security:
                 - bearerAuth: []
             requestBody:
-                $ref: '#/components/requestBodies/BookRequest'
+                $ref: '#/components/requestBodies/BookUpdateRequest'
             responses:
                 '200':
                     $ref: '#/components/responses/OkResponse '
@@ -147,6 +147,36 @@ components:
             description: Book object for creation and update
             required: true
 
+        BookCreateRequest:
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            book:
+                                $ref: '#/components/schemas/BookCreateUpdate'
+                            image:
+                                type: string
+                                format: base64
+                    encoding:
+                        image:
+                            contentType: image/png, image/jpeg
+
+        BookUpdateRequest:
+            content:
+                multipart/form-data:
+                    schema:
+                        type: object
+                        properties:
+                            book:
+                                $ref: '#/components/schemas/BookCreateUpdate'
+                            image:
+                                type: string
+                                format: base64
+                    encoding:
+                        image:
+                            contentType: image/png, image/jpeg
+
         UserRatingRequest:
             content:
                 application/json:
@@ -190,14 +220,41 @@ components:
             description: Ok message for a 200
 
     schemas:
-        Book:
+        BookCreateUpdate:
             type: object
             properties:
-                book:
+                userId:
                     type: string
-                image:
+                title:
+                    type: string
+                author:
+                    type: string
+                year:
+                    type: number
+                genre:
+                    type: string
+
+        Book:
+            allOf:
+                - $ref: '#/components/schemas/BookCreateUpdate'
+            type: object
+            properties:
+                id:
+                    type: string
+                imageUrl:
                     type: string
                     format: url
+                ratings:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            userId:
+                                type: string
+                            grade:
+                                $ref: '#/components/schemas/Rating'
+                averageRating:
+                    type: number
 
         User:
             type: object
