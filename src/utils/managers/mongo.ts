@@ -22,16 +22,23 @@ export class MongoManager {
         this.password = password;
     }
 
-    public async connect() {
+    public async connect(dbName?: string) {
         try {
             this._client = await mongoose.connect(`mongodb://${this.host}`, {
-                auth: {
-                    username: this.username,
-                    password: this.password,
+                ...{
+                    auth: {
+                        username: this.username,
+                        password: this.password,
+                    },
+                    authSource: 'admin',
+                    readPreference: 'primary',
+                    ssl: false,
                 },
-                authSource: 'admin',
-                readPreference: 'primary',
-                ssl: false,
+                ...(dbName
+                    ? {
+                          dbName: dbName,
+                      }
+                    : {}),
             });
 
             console.log(`Succesfully connected to MongoDB at ${this.host}`);

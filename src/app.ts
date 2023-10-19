@@ -33,6 +33,6 @@ const api_manager = new ApiManager({
 
 // Run the app
 (async () => {
-    await mongoManager.connect();
+    await mongoManager.connect(process.env.MONGO_DB_NAME || '');
     api_manager.run(process.env.API_PORT || 4000);
 })();
