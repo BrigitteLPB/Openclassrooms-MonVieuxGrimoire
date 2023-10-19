@@ -1,6 +1,7 @@
 import { LoginMiddleware } from 'apps/auth/login';
 import { SignupMiddleware } from 'apps/auth/signup';
 import { CreateMiddleware } from 'apps/books/create';
+import { DeleteMiddleware } from 'apps/books/delete';
 import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { Request, Response } from 'express';
 import { ApiManager, HTTPMethod } from 'utils/managers/api';
@@ -20,6 +21,7 @@ const api_manager = new ApiManager({
         LoginMiddleware,
         CreateMiddleware,
         RetrieveMiddleware,
+        DeleteMiddleware,
         {
             method: HTTPMethod.GET,
             uri: '/*',
