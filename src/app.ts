@@ -1,6 +1,7 @@
 import { LoginMiddleware } from 'apps/auth/login';
 import { SignupMiddleware } from 'apps/auth/signup';
 import { CreateMiddleware } from 'apps/books/create';
+import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { Request, Response } from 'express';
 import { ApiManager, HTTPMethod } from 'utils/managers/api';
 import { mongoManager } from 'utils/managers/mongo';
@@ -18,6 +19,7 @@ const api_manager = new ApiManager({
         SignupMiddleware,
         LoginMiddleware,
         CreateMiddleware,
+        RetrieveMiddleware,
         {
             method: HTTPMethod.GET,
             uri: '/*',
