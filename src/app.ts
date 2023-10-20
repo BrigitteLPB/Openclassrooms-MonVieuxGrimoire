@@ -2,6 +2,7 @@ import { LoginMiddleware } from 'apps/auth/login';
 import { SignupMiddleware } from 'apps/auth/signup';
 import { CreateMiddleware } from 'apps/books/create';
 import { DeleteMiddleware } from 'apps/books/delete';
+import { ListMiddleware } from 'apps/books/list';
 import { CreateRatingMiddleware } from 'apps/books/ratings/create_rating';
 import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { UpdateMiddleware } from 'apps/books/update';
@@ -26,6 +27,7 @@ const api_manager = new ApiManager({
         DeleteMiddleware,
         UpdateMiddleware,
         CreateRatingMiddleware,
+        ListMiddleware,
         {
             method: HTTPMethod.GET,
             uri: '/*',
