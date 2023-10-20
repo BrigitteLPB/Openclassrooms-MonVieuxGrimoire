@@ -1,36 +1,25 @@
 import { BookModel } from 'models/book';
-import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
 import { s3FileStorageManager } from 'utils/managers/file_storage';
 
-export const RetrieveMiddleware: ExpressMiddleware = {
+export const ListMiddleware: ExpressMiddleware = {
     method: HTTPMethod.GET,
-    uri: '/books/:bookId',
+    uri: '/books',
     middelware: [
         // get the book
         async (req, res, next) => {
-            const bookId = req.params.bookId;
-
-            if (!bookId || !Types.ObjectId.isValid(bookId)) {
-                res.statusCode = 400;
-                return res.json({
-                    error: 'need a valid bookId in the path /books/{id}',
-                });
-            }
-
             try {
-                const book = await BookModel.findById(bookId);
+                const allBook = await BookModel.find();
 
-                if (!book) {
-                    res.statusCode = 404;
+                if (!allBook) {
+                    res.statusCode = 500;
                     return res.json({
-                        error: `can not find book with id ${bookId}`,
+                        error: `can not list all the book`,
                     });
                 }
 
-                res.locals.body = {
-                    ...res.locals.body,
-                    ...{
+                res.locals.body = await Promise.all(
+                    allBook.map(async (book) => ({
                         id: book._id,
                         userId: book.userId,
                         title: book.title,
@@ -43,8 +32,8 @@ export const RetrieveMiddleware: ExpressMiddleware = {
                         genre: book.genre,
                         ratings: book.ratings,
                         averageRating: book.averageRating,
-                    },
-                };
+                    }))
+                );
 
                 return next();
             } catch (e) {
