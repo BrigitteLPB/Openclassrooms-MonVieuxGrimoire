@@ -7,6 +7,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
     method: HTTPMethod.PUT,
     uri: '/books/:bookId',
     useImage: true,
+    needAuth: true,
     middelware: [
         // create the book
         async (req, res, next) => {

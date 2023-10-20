@@ -1,4 +1,5 @@
 import { BookModel } from 'models/book';
+import { UserModel } from 'models/user';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
 import { s3FileStorageManager } from 'utils/managers/file_storage';
 
@@ -6,6 +7,7 @@ export const CreateMiddleware: ExpressMiddleware = {
     method: HTTPMethod.POST,
     uri: '/books',
     useImage: true,
+    needAuth: true,
     middelware: [
         // create the book
         async (req, res, next) => {
@@ -18,6 +20,29 @@ export const CreateMiddleware: ExpressMiddleware = {
                 });
             }
 
+            // check user exist
+            try {
+                const isUserExist = await UserModel.exists({
+                    _id: book.userId,
+                });
+
+                if (!isUserExist) {
+                    res.status(500);
+                    return res.json({
+                        error: `can not get user ${book.userId}`,
+                    });
+                }
+            } catch (e) {
+                console.error('can not read the user table');
+                console.error(e);
+
+                res.status(500);
+                return res.json({
+                    error: 'can not read the user table',
+                });
+            }
+
+            // create the book
             try {
                 const newBook = await BookModel.create({
                     userId: book.userId, // TODO add userId check

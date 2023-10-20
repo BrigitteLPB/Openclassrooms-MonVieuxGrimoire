@@ -1,11 +1,13 @@
 import { BookModel } from 'models/book';
 import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
+import { s3FileStorageManager } from 'utils/managers/file_storage';
 
 export const DeleteMiddleware: ExpressMiddleware = {
     method: HTTPMethod.DELETE,
     uri: '/books/:bookId',
     useImage: true,
+    needAuth: true,
     middelware: [
         // get the book
         async (req, res, next) => {
@@ -27,6 +29,11 @@ export const DeleteMiddleware: ExpressMiddleware = {
                         error: `can not find book with id ${bookId}`,
                     });
                 }
+
+                await s3FileStorageManager.removeFile({
+                    bucketName: s3FileStorageManager.imageBucketName,
+                    filename: book.imageUrl,
+                });
 
                 res.locals.body = {
                     ...res.locals.body,
