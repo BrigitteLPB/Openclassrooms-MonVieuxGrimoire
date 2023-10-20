@@ -33,6 +33,15 @@ export interface FileStorage {
     }) => Promise<string>;
 
     /**
+     * remove a file in the storage
+     * @param args
+     */
+    removeFile: (args: {
+        bucketName: string;
+        filename: string;
+    }) => Promise<void>;
+
+    /**
      * Send the image field of a multipart request to the S3
      * Need bookId & userId in the res.locals
      * @param req
@@ -111,6 +120,12 @@ export class S3FileStorage implements FileStorage {
             filename,
             3600 // 1h
         );
+    }
+
+    public async removeFile(args: { bucketName: string; filename: string }) {
+        const { bucketName, filename } = args;
+
+        return await this.minioClient.removeObject(bucketName, filename);
     }
 
     public async processFileMiddleware(
