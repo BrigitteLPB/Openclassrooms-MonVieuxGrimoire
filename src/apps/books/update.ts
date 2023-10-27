@@ -20,40 +20,37 @@ export const UpdateMiddleware: ExpressMiddleware = {
                 });
             }
 
-            const book = JSON.parse(req.body.book);
+            // parse the request body
+            if (req.body.book) {
+                req.body = JSON.parse(req.body.book);
+            }
+
+            // maps the book object
+            const book = {
+                ...(req.body.title ? { title: req.body.title } : {}),
+                ...(req.body.author ? { author: req.body.author } : {}),
+                ...(req.body.genre ? { genre: req.body.genre } : {}),
+                ...(req.body.year ? { year: req.body.year } : {}),
+            };
+
             if (!book) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'can not get the new data from the request.',
                 });
             }
 
+            // update the book
             try {
                 const updatedBook = await BookModel.findOneAndUpdate(
                     {
                         _id: bookId,
                     },
                     {
-                        ...(book.title
-                            ? {
-                                  title: book.title,
-                              }
-                            : {}),
-                        ...(book.author
-                            ? {
-                                  author: book.author,
-                              }
-                            : {}),
-                        ...(book.year
-                            ? {
-                                  year: book.year,
-                              }
-                            : {}),
-                        ...(book.genre
-                            ? {
-                                  genre: book.genre,
-                              }
-                            : {}),
+                        ...(book.title ? { title: book.title } : {}),
+                        ...(book.author ? { author: book.author } : {}),
+                        ...(book.year ? { year: book.year } : {}),
+                        ...(book.genre ? { genre: book.genre } : {}),
                     }
                 );
 
@@ -66,6 +63,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
 
                 res.locals.body = {
                     id: updatedBook._id,
+                    _id: updatedBook._id, // pour les relous du front-end
                     userId: updatedBook.userId,
                 };
 

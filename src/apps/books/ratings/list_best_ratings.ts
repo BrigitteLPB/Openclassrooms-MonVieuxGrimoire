@@ -22,6 +22,7 @@ export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
                     });
                 }
 
+                // mapping MongoDB / Front-end
                 res.locals.body = await Promise.all(
                     allBook.map(async (book) => ({
                         id: book._id,

@@ -27,9 +27,9 @@ export const CreateMiddleware: ExpressMiddleware = {
                 });
 
                 if (!isUserExist) {
-                    res.status(500);
+                    res.status(40);
                     return res.json({
-                        error: `can not get user ${book.userId}`,
+                        error: `unknown user ${book.userId}`,
                     });
                 }
             } catch (e) {
@@ -40,6 +40,24 @@ export const CreateMiddleware: ExpressMiddleware = {
                 return res.json({
                     error: 'can not read the user table',
                 });
+            }
+
+            // check image file
+            if (!req.file) {
+                res.status(400);
+                return res.json({
+                    error: `can not parse the image`,
+                });
+            }
+
+            // check other fields
+            for (var k of ['genre', 'title', 'author', 'year']) {
+                if (!(k in book)) {
+                    res.status(400);
+                    return res.json({
+                        error: `missing field ${k}`,
+                    });
+                }
             }
 
             // create the book
@@ -57,6 +75,7 @@ export const CreateMiddleware: ExpressMiddleware = {
 
                 res.locals.body = {
                     id: newBook._id,
+                    _id: newBook._id, // pour les relous du front-end
                     userId: newBook.userId,
                     title: newBook.title,
                     author: newBook.author,

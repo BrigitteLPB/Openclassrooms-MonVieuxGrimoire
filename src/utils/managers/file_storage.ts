@@ -150,7 +150,10 @@ export class S3FileStorage implements FileStorage {
 
             // optmise image with sharp
             const optimiseFile = await sharp(req.file?.buffer)
-                .resize(200, 200)
+                .resize(
+                    Number(process.env.SHARP_IMAGE_WIDTH) || 200,
+                    Number(process.env.SHARP_IMAGE_HEIGHT || 200)
+                )
                 .webp()
                 .toBuffer();
 

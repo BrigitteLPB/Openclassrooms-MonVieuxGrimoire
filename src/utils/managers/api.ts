@@ -26,7 +26,6 @@ export class ApiManager {
     readonly baseUrl: string | null;
     readonly app: Express;
     readonly multerUploads: Multer;
-    readonly corsMiddleware: any;
     protected server: Server | undefined = undefined;
 
     public constructor(
@@ -48,7 +47,7 @@ export class ApiManager {
         });
 
         // cors
-        this.corsMiddleware = cors(corsConfig || {});
+        this.app.use(cors(corsConfig || {}));
 
         // all custom middlewares
         this.addMiddlewares(middlewares || []);
@@ -61,10 +60,7 @@ export class ApiManager {
     public addMiddlewares(middlewares: Array<ExpressMiddleware>) {
         middlewares.forEach((e) => {
             // get all middlewares
-            const middleware_funcs: Array<RequestHandler> = [
-                express.json(),
-                this.corsMiddleware,
-            ];
+            const middleware_funcs: Array<RequestHandler> = [express.json()];
 
             // Image support with multer. Added before express.json
             if (e.useImage) {
