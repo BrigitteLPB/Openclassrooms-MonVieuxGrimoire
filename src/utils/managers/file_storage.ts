@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { Client } from 'minio';
 import { Readable as ReadableStream } from 'node:stream';
+import sharp from 'sharp';
 
 export interface FileStorage {
     /**
@@ -147,14 +148,19 @@ export class S3FileStorage implements FileStorage {
                 });
             }
 
-            const serverUri = `/${userId}/${id}.${req.file?.mimetype.split(
-                '/'
-            )[1]}`;
+            // optmise image with sharp
+            const optimiseFile = await sharp(req.file?.buffer)
+                .resize(200, 200)
+                .webp()
+                .toBuffer();
+
+            // uploading new image to S3
+            const serverUri = `/${userId}/${id}.webp`;
 
             await this.addFile({
                 bucketName: this.imageBucketName,
                 serverFilepath: serverUri,
-                localFileStream: ReadableStream.from(req.file?.buffer),
+                localFileStream: ReadableStream.from(optimiseFile),
             });
 
             res.locals.imageUri = serverUri;
