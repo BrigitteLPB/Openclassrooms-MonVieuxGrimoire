@@ -7,8 +7,7 @@ import { CreateRatingMiddleware } from 'apps/books/ratings/create_rating';
 import { ListBestRatingRatingMiddleware } from 'apps/books/ratings/list_best_ratings';
 import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { UpdateMiddleware } from 'apps/books/update';
-import { Request, Response } from 'express';
-import { ApiManager, HTTPMethod } from 'utils/managers/api';
+import { ApiManager } from 'utils/managers/api';
 import { mongoManager } from 'utils/managers/mongo';
 
 // init express
@@ -16,6 +15,7 @@ const api_manager = new ApiManager({
     baseUrl: '/api',
     corsConfig: {
         origin: process.env.CORS_ORIGINS?.split(','),
+        methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
         optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
     },
 
@@ -30,16 +30,6 @@ const api_manager = new ApiManager({
         UpdateMiddleware,
         CreateRatingMiddleware,
         ListMiddleware,
-        {
-            method: HTTPMethod.GET,
-            uri: '/*',
-            middelware: (req: Request, res: Response) => {
-                console.log('all endpoint'); // DEBUG
-
-                console.log(req.body);
-                res.end(JSON.stringify(req.body));
-            },
-        },
     ],
 });
 

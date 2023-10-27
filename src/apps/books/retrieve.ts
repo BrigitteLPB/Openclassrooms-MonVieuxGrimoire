@@ -32,6 +32,7 @@ export const RetrieveMiddleware: ExpressMiddleware = {
                     ...res.locals.body,
                     ...{
                         id: book._id,
+                        _id: book._id, // pour les relous du front-end
                         userId: book.userId,
                         title: book.title,
                         author: book.author,
