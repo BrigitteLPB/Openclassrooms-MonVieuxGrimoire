@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import { CreateMiddleware } from 'apps/books/create';
-import { UpdateMiddleware } from 'apps/books/update';
+import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { readFile } from 'fs/promises';
 import { get } from 'http';
 import { BookModel } from 'models/book';
@@ -9,7 +9,6 @@ import { Types } from 'mongoose';
 import multer, { Multer } from 'multer';
 import { Readable as ReadableStream } from 'node:stream';
 import request from 'supertest';
-import { Authorizer } from 'utils/jwt';
 import { ApiManager } from 'utils/managers/api';
 import { S3FileStorage } from 'utils/managers/file_storage';
 import { mongoManager } from 'utils/managers/mongo';
@@ -22,7 +21,7 @@ let dbname = '';
 let multerManager: Multer;
 let fileStorageManager: S3FileStorage;
 
-describe('Book Update', () => {
+describe('Book Retrieve', () => {
     beforeEach(async () => {
         // api
         apiManager = new ApiManager();
@@ -70,7 +69,7 @@ describe('Book Update', () => {
         await fileStorageManager.minioClient.removeBucket(bucketName);
     });
 
-    test('Update a book with image', async () => {
+    test('Retrieve a book', async () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
@@ -78,13 +77,8 @@ describe('Book Update', () => {
         CreateMiddleware.uri = `/${v4()}`;
         CreateMiddleware.needAuth = false;
 
-        // add a new user
+        // new user
         const userId = new Types.ObjectId();
-        await UserModel.create({
-            _id: userId,
-            email: 'my email',
-            password: 'my password',
-        });
 
         // add a new book
         const bookId = new Types.ObjectId();
@@ -110,64 +104,34 @@ describe('Book Update', () => {
         });
 
         // set a basic express router
-        apiManager.addMiddlewares([UpdateMiddleware]);
+        apiManager.addMiddlewares([RetrieveMiddleware]);
 
         // request the data
-        const response = await request(apiManager.app)
-            .put(UpdateMiddleware.uri.replace(':bookId', bookId.toString()))
-            .field(
-                'book',
-                JSON.stringify({
-                    title: 'my new title',
-                    author: 'my new author',
-                    genre: 'my new genre',
-                    year: 2010,
-                })
-            )
-            .attach('image', './tests/data/image_2.png')
-            .set('Content-Type', 'multipart/form-data')
-            .set(
-                'Authorization',
-                `Bearer ${Authorizer.generateToken({
-                    userId: userId.toString(),
-                })}`
-            );
+        const response = await request(apiManager.app).get(
+            RetrieveMiddleware.uri.replace(':bookId', bookId.toString())
+        );
 
         console.debug(response.body);
         expect(response.statusCode).toBe(200);
 
         // search the new document in DB
         const dbResponse = await BookModel.findById(bookId);
-        expect(dbResponse).not.toBeNull();
-        expect(dbResponse?.title).toBe('my new title');
-        expect(dbResponse?.author).toBe('my new author');
-        expect(dbResponse?.genre).toBe('my new genre');
-        expect(dbResponse?.year).toBe(2010);
+        expect(response.body).not.toBeNull();
+        expect(response.body.title).toBe('my title');
+        expect(response.body.author).toBe('author');
+        expect(response.body.genre).toBe('my genre');
+        expect(response.body.year).toBe(2000);
 
         // test imageURL
-        const fileUrl = await fileStorageManager.getFileURL({
-            bucketName: bucketName,
-            filename: dbResponse?.imageUrl,
-        });
         const statusCode = await new Promise(function (resolve) {
-            get(fileUrl, {}, (res) => {
+            get(response.body.imageUrl, {}, (res) => {
                 return resolve(res.statusCode);
             });
         });
         expect(statusCode).toBe(200);
-
-        // search the file on S3
-        const s3File = await fileStorageManager.minioClient.getObject(
-            bucketName,
-            dbResponse?.imageUrl
-        );
-
-        expect(s3File.read()).not.toBe(
-            await readFile('./tests/data/image.webp')
-        );
     });
 
-    test('Update a book without image', async () => {
+    test('Retrieve a book not found', async () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
@@ -183,60 +147,18 @@ describe('Book Update', () => {
             password: 'my password',
         });
 
-        // add a new book
+        // new book
         const bookId = new Types.ObjectId();
-        await BookModel.create({
-            _id: bookId,
-            userId: userId,
-            title: 'my title',
-            author: 'author',
-            imageUrl: `/${userId}/${bookId}.webp`,
-            year: 2000,
-            genre: 'my genre',
-            ratings: [],
-            averageRating: 0,
-        });
-
-        // add the image in the S3 file
-        fileStorageManager.addFile({
-            bucketName: bucketName,
-            serverFilepath: `/${userId}/${bookId}.webp`,
-            localFileStream: ReadableStream.from(
-                await readFile('./tests/data/image.webp')
-            ),
-        });
 
         // set a basic express router
-        apiManager.addMiddlewares([UpdateMiddleware]);
+        apiManager.addMiddlewares([RetrieveMiddleware]);
 
         // request the data
-        const response = await request(apiManager.app)
-            .put(UpdateMiddleware.uri.replace(':bookId', bookId.toString()))
-            .send(
-                JSON.stringify({
-                    title: 'my new title',
-                    author: 'my new author',
-                    genre: 'my new genre',
-                    year: 2010,
-                })
-            )
-            .set('Content-Type', 'application/json')
-            .set(
-                'Authorization',
-                `Bearer ${Authorizer.generateToken({
-                    userId: userId.toString(),
-                })}`
-            );
+        const response = await request(apiManager.app).get(
+            RetrieveMiddleware.uri.replace(':bookId', bookId.toString())
+        );
 
-        console.debug('body: ', response.body);
-        expect(response.statusCode).toBe(200);
-
-        // search the new document in DB
-        const dbResponse = await BookModel.findById(bookId);
-        expect(dbResponse).not.toBeNull();
-        expect(dbResponse?.title).toBe('my new title');
-        expect(dbResponse?.author).toBe('my new author');
-        expect(dbResponse?.genre).toBe('my new genre');
-        expect(dbResponse?.year).toBe(2010);
+        console.debug(response.body);
+        expect(response.statusCode).toBe(404);
     });
 });

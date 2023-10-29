@@ -75,7 +75,6 @@ describe('Book create', () => {
 
         // add a new user
         const userId = new Types.ObjectId();
-        console.debug('userId: ', userId);
         await UserModel.create({
             _id: userId,
             email: 'my email',
