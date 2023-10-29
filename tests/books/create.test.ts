@@ -98,7 +98,7 @@ describe('Book create', () => {
                     genre: '',
                 })
             )
-            .attach('image', './tests/books/data/image.png')
+            .attach('image', './tests/data/image.png')
             .set('Content-Type', 'multipart/form-data');
 
         console.debug(response.body);

@@ -129,7 +129,7 @@ describe('Api Manager', () => {
                     myField: 'my value',
                 })
             )
-            .attach('image', './tests/utils/managers/data/image.png')
+            .attach('image', './tests/data/image.png')
             .set('Origin', 'http://localhost');
 
         expect(response.status).toBe(200);
@@ -142,7 +142,7 @@ describe('Api Manager', () => {
         });
 
         // get the local file
-        const file = await readFile('./tests/utils/managers/data/image.png');
+        const file = await readFile('./tests/data/image.png');
         expect(response.body.myImage.buffer.data).toStrictEqual(
             file.toJSON().data
         );

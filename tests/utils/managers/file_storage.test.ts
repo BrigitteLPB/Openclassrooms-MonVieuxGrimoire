@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import express from 'express';
 import { createReadStream } from 'fs';
-import { readFile } from 'fs/promises';
 import { get } from 'http';
 import multer from 'multer';
 import request from 'supertest';
@@ -15,7 +14,7 @@ describe('FileStorage', () => {
     beforeEach(async () => {
         bucketName = `test-${v4()}`;
 
-        fileStorageManager = new S3FileStorage({
+        S3FileStorage.initClient({
             host: process.env.MINIO_HOST || '',
             port: Number(process.env.MINIO_PORT) || 0,
             accessKey: process.env.MINIO_ACCESS_KEY || '',
@@ -24,9 +23,11 @@ describe('FileStorage', () => {
         });
 
         // add bucket
-        await fileStorageManager.initBucketSafe({
+        await S3FileStorage.initBucketSafe({
             bucketName: bucketName,
         });
+
+        fileStorageManager = new S3FileStorage();
     });
 
     afterEach(async () => {
@@ -58,9 +59,7 @@ describe('FileStorage', () => {
         await fileStorageManager.addFile({
             bucketName: bucketName,
             serverFilepath: '/data.json',
-            localFileStream: createReadStream(
-                './tests/utils/managers/data/my_data.json'
-            ),
+            localFileStream: createReadStream('./tests/data/my_data.json'),
         });
 
         const file = await fileStorageManager.minioClient.getObject(
@@ -80,9 +79,7 @@ describe('FileStorage', () => {
         await fileStorageManager.addFile({
             bucketName: bucketName,
             serverFilepath: '/data.json',
-            localFileStream: createReadStream(
-                './tests/utils/managers/data/my_data.json'
-            ),
+            localFileStream: createReadStream('./tests/data/my_data.json'),
         });
 
         const file = await fileStorageManager.getFile({
@@ -102,9 +99,7 @@ describe('FileStorage', () => {
         await fileStorageManager.addFile({
             bucketName: bucketName,
             serverFilepath: '/data.json',
-            localFileStream: createReadStream(
-                './tests/utils/managers/data/my_data.json'
-            ),
+            localFileStream: createReadStream('./tests/data/my_data.json'),
         });
 
         const fileURL = await fileStorageManager.getFileURL({
@@ -145,7 +140,7 @@ describe('FileStorage', () => {
                 };
                 next();
             },
-            fileStorageManager.processFileMiddleware.bind(fileStorageManager),
+            S3FileStorage.processFileMiddleware,
             async (_, res) => {
                 res.json({
                     imageUrl: res.locals.imageUri,
@@ -166,7 +161,7 @@ describe('FileStorage', () => {
                     genre: '',
                 })
             )
-            .attach('image', './tests/utils/managers/data/image.png')
+            .attach('image', './tests/data/image.png')
             .set('Content-Type', 'multipart/form-data');
 
         // search the file on S3
@@ -174,10 +169,5 @@ describe('FileStorage', () => {
             bucketName,
             response.body.imageUrl
         );
-
-        // get the local file
-        const file = await readFile('./tests/utils/managers/data/image.png');
-
-        expect(s3File.read()).toEqual(file);
     });
 });

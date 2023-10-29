@@ -3,7 +3,6 @@ import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
 import { S3FileStorage } from 'utils/managers/file_storage';
 
-const s3Manager = new S3FileStorage();
 export const UpdateMiddleware: ExpressMiddleware = {
     method: HTTPMethod.PUT,
     uri: '/books/:bookId',
@@ -103,6 +102,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
                 console.error('can not update the image uri');
                 console.error(e);
 
+                res.status(500);
                 return res.json({
                     error: 'can not update the image URL',
                 });
