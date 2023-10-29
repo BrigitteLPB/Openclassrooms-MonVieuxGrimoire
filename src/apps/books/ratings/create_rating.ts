@@ -14,7 +14,7 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
 
             // check bookId param
             if (!bookId || !Types.ObjectId.isValid(bookId)) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'need a valid bookId in the path /books/{id}/rating',
                 });
@@ -24,7 +24,7 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
 
             // check userId field
             if (!userId || !Types.ObjectId.isValid(userId)) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'need a valid userId in the body',
                 });
@@ -32,7 +32,7 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
 
             // check rating field
             if (!rating || rating < 0 || rating > 5) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'rating must be in from 0 to 5.',
                 });
@@ -148,7 +148,7 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
 
                 // can find the book to update
                 if (!updatedBook) {
-                    res.statusCode = 404;
+                    res.status(404);
                     return res.json({
                         error: `can not find book with id ${bookId}`,
                     });

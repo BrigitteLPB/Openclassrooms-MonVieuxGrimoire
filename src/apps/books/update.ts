@@ -1,8 +1,9 @@
 import { BookModel } from 'models/book';
 import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
-import { s3FileStorageManager } from 'utils/managers/file_storage';
+import { S3FileStorage } from 'utils/managers/file_storage';
 
+const s3Manager = new S3FileStorage();
 export const UpdateMiddleware: ExpressMiddleware = {
     method: HTTPMethod.PUT,
     uri: '/books/:bookId',
@@ -14,7 +15,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
             const bookId = req.params.bookId;
 
             if (!bookId || !Types.ObjectId.isValid(bookId)) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'need a valid bookId in the path /books/{id}',
                 });
@@ -45,6 +46,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
                 const updatedBook = await BookModel.findOneAndUpdate(
                     {
                         _id: bookId,
+                        userId: res.locals.auth.userId,
                     },
                     {
                         ...(book.title ? { title: book.title } : {}),
@@ -55,7 +57,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
                 );
 
                 if (!updatedBook) {
-                    res.statusCode = 404;
+                    res.status(404);
                     return res.json({
                         error: `can not find book with id ${bookId}`,
                     });
@@ -79,7 +81,7 @@ export const UpdateMiddleware: ExpressMiddleware = {
             }
         },
         // add the image in the S3
-        s3FileStorageManager.processFileMiddleware.bind(s3FileStorageManager),
+        S3FileStorage.processFileMiddleware,
         // update the book image URL
         async (_, res, next) => {
             try {

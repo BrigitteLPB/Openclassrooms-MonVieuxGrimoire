@@ -1,7 +1,7 @@
 import { BookModel } from 'models/book';
 import { Types } from 'mongoose';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
-import { s3FileStorageManager } from 'utils/managers/file_storage';
+import { S3FileStorage } from 'utils/managers/file_storage';
 
 export const RetrieveMiddleware: ExpressMiddleware = {
     method: HTTPMethod.GET,
@@ -9,10 +9,11 @@ export const RetrieveMiddleware: ExpressMiddleware = {
     middelware: [
         // get the book
         async (req, res, next) => {
+            const s3Manager = new S3FileStorage();
             const bookId = req.params.bookId;
 
             if (!bookId || !Types.ObjectId.isValid(bookId)) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'need a valid bookId in the path /books/{id}',
                 });
@@ -22,7 +23,7 @@ export const RetrieveMiddleware: ExpressMiddleware = {
                 const book = await BookModel.findById(bookId);
 
                 if (!book) {
-                    res.statusCode = 404;
+                    res.status(404);
                     return res.json({
                         error: `can not find book with id ${bookId}`,
                     });
@@ -36,8 +37,8 @@ export const RetrieveMiddleware: ExpressMiddleware = {
                         userId: book.userId,
                         title: book.title,
                         author: book.author,
-                        imageUrl: await s3FileStorageManager.getFileURL({
-                            bucketName: s3FileStorageManager.imageBucketName,
+                        imageUrl: await s3Manager.getFileURL({
+                            bucketName: s3Manager.imageBucketName,
                             filename: book.imageUrl,
                         }),
                         year: book.year,

@@ -8,7 +8,21 @@ import { ListBestRatingRatingMiddleware } from 'apps/books/ratings/list_best_rat
 import { RetrieveMiddleware } from 'apps/books/retrieve';
 import { UpdateMiddleware } from 'apps/books/update';
 import { ApiManager } from 'utils/managers/api';
+import { S3FileStorage } from 'utils/managers/file_storage';
 import { mongoManager } from 'utils/managers/mongo';
+
+// init Minio
+S3FileStorage.initClient({
+    host: process.env.MINIO_HOST || '',
+    port: Number(process.env.MINIO_PORT) || 0,
+    accessKey: process.env.MINIO_ACCESS_KEY || '',
+    secretKey: process.env.MINIO_SECRET_KEY || '',
+    imageBucketName: 'images',
+});
+
+S3FileStorage.initBucketSafe({
+    bucketName: 'images',
+});
 
 // init express
 const api_manager = new ApiManager({

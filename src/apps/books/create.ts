@@ -1,7 +1,7 @@
 import { BookModel } from 'models/book';
 import { UserModel } from 'models/user';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
-import { s3FileStorageManager } from 'utils/managers/file_storage';
+import { S3FileStorage } from 'utils/managers/file_storage';
 
 export const CreateMiddleware: ExpressMiddleware = {
     method: HTTPMethod.POST,
@@ -14,7 +14,7 @@ export const CreateMiddleware: ExpressMiddleware = {
             const book = JSON.parse(req.body.book);
 
             if (!book) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'bad values the books.',
                 });
@@ -27,7 +27,7 @@ export const CreateMiddleware: ExpressMiddleware = {
                 });
 
                 if (!isUserExist) {
-                    res.status(40);
+                    res.status(400);
                     return res.json({
                         error: `unknown user ${book.userId}`,
                     });
@@ -97,9 +97,10 @@ export const CreateMiddleware: ExpressMiddleware = {
             }
         },
         // add the image in the S3
-        s3FileStorageManager.processFileMiddleware.bind(s3FileStorageManager),
+        S3FileStorage.processFileMiddleware,
         // update the book image URL
         async (_, res, next) => {
+            const s3Manager = new S3FileStorage();
             try {
                 await BookModel.updateOne(
                     {
@@ -113,8 +114,8 @@ export const CreateMiddleware: ExpressMiddleware = {
                 res.locals.body = {
                     ...res.locals.body,
                     ...{
-                        imageUrl: await s3FileStorageManager.getFileURL({
-                            bucketName: s3FileStorageManager.imageBucketName,
+                        imageUrl: await s3Manager.getFileURL({
+                            bucketName: s3Manager.imageBucketName || 'images',
                             filename: res.locals.imageUri,
                         }),
                     },
