@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
-import { CreateMiddleware } from 'apps/books/create';
-import { get } from 'http';
-import { UserModel } from 'models/user';
+import { ListMiddleware } from 'apps/books/list';
+import { readFile } from 'fs/promises';
+import { BookModel } from 'models/book';
 import { Types } from 'mongoose';
 import multer, { Multer } from 'multer';
+import { Readable as ReadableStream } from 'node:stream';
 import request from 'supertest';
-import { Authorizer } from 'utils/jwt';
 import { ApiManager } from 'utils/managers/api';
 import { S3FileStorage } from 'utils/managers/file_storage';
 import { mongoManager } from 'utils/managers/mongo';
@@ -18,7 +18,7 @@ let dbname = '';
 let multerManager: Multer;
 let fileStorageManager: S3FileStorage;
 
-describe('Book create', () => {
+describe('Book List', () => {
     beforeEach(async () => {
         // api
         apiManager = new ApiManager();
@@ -66,61 +66,59 @@ describe('Book create', () => {
         await fileStorageManager.minioClient.removeBucket(bucketName);
     });
 
-    test('Create a book', async () => {
+    test('List books', async () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
 
-        // add a new user
+        // new user
         const userId = new Types.ObjectId();
-        await UserModel.create({
-            _id: userId,
-            email: 'my email',
-            password: 'my password',
-        });
+
+        // add a new book
+        const bookIds = Array.from(Array(5), (_, x) => new Types.ObjectId());
+        await BookModel.insertMany(
+            bookIds.map(async (id) => {
+                // add the image in the S3 file
+                await fileStorageManager.addFile({
+                    bucketName: bucketName,
+                    serverFilepath: `/${userId}/${id}.webp`,
+                    localFileStream: ReadableStream.from(
+                        await readFile('./tests/data/image.webp')
+                    ),
+                });
+
+                return {
+                    _id: id,
+                    userId: userId,
+                    title: 'my title',
+                    author: 'author',
+                    imageUrl: `/${userId}/${id}.webp`,
+                    year: 2000,
+                    genre: 'my genre',
+                    ratings: [],
+                    averageRating: 0,
+                };
+            })
+        );
 
         // set a basic express router
-        apiManager.addMiddlewares([CreateMiddleware]);
+        apiManager.addMiddlewares([ListMiddleware]);
 
         // request the data
-        const response = await request(apiManager.app)
-            .post(CreateMiddleware.uri)
-            .field(
-                'book',
-                JSON.stringify({
-                    title: '',
-                    author: '',
-                    year: 2010,
-                    userId: userId.toString(),
-                    genre: '',
-                })
-            )
-            .attach('image', './tests/data/image.png')
-            .set('Content-Type', 'multipart/form-data')
-            .set(
-                'Authorization',
-                `Bearer ${Authorizer.generateToken({
-                    userId: userId.toString(),
-                })}`
-            );
+        const response = await request(apiManager.app).get(ListMiddleware.uri);
 
+        console.debug(bookIds);
         console.debug(response.body);
         expect(response.statusCode).toBe(200);
 
-        // test imageURL
-        const statusCode = await new Promise(function (resolve) {
-            get(response.body.imageUrl, {}, (res) => {
-                return resolve(res.statusCode);
-            });
+        expect(response.body.length).toBe(5);
+
+        response.body.forEach(async (book: { [k: string]: any }, i: number) => {
+            expect(bookIds.find((e) => e == book.id)).not.toBeNull();
+
+            // search the new document in DB
+            const dbResponse = await BookModel.findById(book.id);
+            expect(response.body).not.toBeNull();
         });
-        expect(statusCode).toBe(200);
-
-        // search the file on S3
-        const s3File = await fileStorageManager.minioClient.getObject(
-            bucketName,
-            `/${response.body.userId}/${response.body.id}.webp`
-        );
-
-        expect(s3File).not.toBeNull();
     });
 });
