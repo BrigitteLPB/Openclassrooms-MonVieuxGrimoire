@@ -38,6 +38,14 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
                 });
             }
 
+            // check if user is the right one
+            if (userId != res.locals.auth.userId) {
+                res.status(401);
+                return res.json({
+                    error: `no match found with userId ${userId} and authentification token`,
+                });
+            }
+
             // check user exist
             try {
                 const isUserExist = await UserModel.exists({
@@ -45,7 +53,7 @@ export const CreateRatingMiddleware: ExpressMiddleware = {
                 });
 
                 if (!isUserExist) {
-                    res.status(500);
+                    res.status(404);
                     return res.json({
                         error: `can not get user ${userId}`,
                     });

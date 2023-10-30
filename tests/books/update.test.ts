@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
-import { CreateMiddleware } from 'apps/books/create';
 import { UpdateMiddleware } from 'apps/books/update';
 import { readFile } from 'fs/promises';
 import { get } from 'http';
@@ -74,9 +73,6 @@ describe('Book Update', () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
-
-        CreateMiddleware.uri = `/${v4()}`;
-        CreateMiddleware.needAuth = false;
 
         // add a new user
         const userId = new Types.ObjectId();
@@ -171,9 +167,6 @@ describe('Book Update', () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
-
-        CreateMiddleware.uri = `/${v4()}`;
-        CreateMiddleware.needAuth = false;
 
         // add a new user
         const userId = new Types.ObjectId();
