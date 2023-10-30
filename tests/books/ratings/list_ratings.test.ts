@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
-import { ListMiddleware } from 'apps/books/list';
+import { ListBestRatingRatingMiddleware } from 'apps/books/ratings/list_best_ratings';
 import { readFile } from 'fs/promises';
 import { BookModel } from 'models/book';
+import { UserModel } from 'models/user';
 import { Types } from 'mongoose';
 import multer, { Multer } from 'multer';
 import { Readable as ReadableStream } from 'node:stream';
@@ -18,7 +19,7 @@ let dbname = '';
 let multerManager: Multer;
 let fileStorageManager: S3FileStorage;
 
-describe('Book List', () => {
+describe('Book Rating List', () => {
     beforeEach(async () => {
         // api
         apiManager = new ApiManager();
@@ -59,26 +60,31 @@ describe('Book List', () => {
         );
 
         // remove the database
-        await mongoManager.client()?.connection.db.dropDatabase();
+        // await mongoManager.client()?.connection.db.dropDatabase();
         await mongoManager.client()?.disconnect();
 
         // remove bucket
         await fileStorageManager.minioClient.removeBucket(bucketName);
     });
 
-    test('List books', async () => {
+    test('List the best 3', async () => {
         expect(
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
 
-        // new user
+        // add a new user
         const userId = new Types.ObjectId();
+        await UserModel.create({
+            _id: userId,
+            email: 'my email',
+            password: 'my password',
+        });
 
-        // add a new book
+        // add a new books
         const bookIds = Array.from(Array(5), (_, x) => new Types.ObjectId());
         await BookModel.insertMany(
             await Promise.all(
-                bookIds.map(async (id) => {
+                bookIds.map(async (id, i) => {
                     // add the image in the S3 file
                     await fileStorageManager.addFile({
                         bucketName: bucketName,
@@ -96,31 +102,27 @@ describe('Book List', () => {
                         imageUrl: `/${userId}/${id}.webp`,
                         year: 2000,
                         genre: 'my genre',
-                        ratings: [],
-                        averageRating: 0,
+                        ratings: [{ userId: userId, rating: i + 1 }],
+                        averageRating: i + 1,
                     };
                 })
             )
         );
 
         // set a basic express router
-        apiManager.addMiddlewares([ListMiddleware]);
+        apiManager.addMiddlewares([ListBestRatingRatingMiddleware]);
 
         // request the data
-        const response = await request(apiManager.app).get(ListMiddleware.uri);
+        const response = await request(apiManager.app).get(
+            ListBestRatingRatingMiddleware.uri
+        );
 
-        console.debug(bookIds);
         console.debug(response.body);
         expect(response.statusCode).toBe(200);
+        expect(response.body.length).toBe(3);
 
-        expect(response.body.length).toBe(5);
-
-        response.body.forEach(async (book: { [k: string]: any }, i: number) => {
-            expect(bookIds.find((e) => e == book.id)).not.toBeNull();
-
-            // search the new document in DB
-            const dbResponse = await BookModel.findById(book.id);
-            expect(response.body).not.toBeNull();
+        response.body.forEach((book: { [k: string]: any }, i: number) => {
+            expect(book.averageRating).toBe(5 - i);
         });
     });
 });

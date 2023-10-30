@@ -27,6 +27,7 @@ export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
                 res.locals.body = await Promise.all(
                     allBook.map(async (book) => ({
                         id: book._id,
+                        _id: book._id, // pour les relous du front-end
                         userId: book.userId,
                         title: book.title,
                         author: book.author,
