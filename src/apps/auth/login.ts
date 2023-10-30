@@ -24,7 +24,7 @@ export const LoginMiddleware: ExpressMiddleware = {
                     user == null ||
                     !(await Hasher.validateHash(password, user.password))
                 ) {
-                    res.status(403);
+                    res.status(401);
                     return res.json({
                         error: 'can not connect with those credentials. Try again.',
                     });

@@ -60,7 +60,7 @@ describe('Book Rating List', () => {
         );
 
         // remove the database
-        // await mongoManager.client()?.connection.db.dropDatabase();
+        await mongoManager.client()?.connection.db.dropDatabase();
         await mongoManager.client()?.disconnect();
 
         // remove bucket
