@@ -34,10 +34,25 @@ This project support nodemon and ts-node, you can launch the project with the fo
 
 > `yarn watch` # run with node and nodemon
 
-**Env File**: you can copy the `.env.template` file and rename it `.env`. The template file is already filled with a local setup that works with the original docker-compose
+**Env File**: you can copy the `.env.template` file and rename it `.env`. The template file is already filled with a local setup that works with the original docker-compose.
+
+The `MONGO_DB_PORT` is only used localy in the `docker-compose`. You can removed it if you define it directly in the `docker-compose` or use a cloud DB (like AWS)
 
 ## Tests
 
 You can run tests with :
 
 > `yarn test`
+
+## link with frontend
+
+in the frontend project, search for all the config variables in `/src/utils/constants.js`
+
+`API_ROUTE` is the server root of the frontend, for example : `http://localhost:4000`
+
+`API_ROUTES` defines all the api paths on the server. No method specified. There are 4 paths :
+
+-   SIGN_UP: create a user,
+-   SIGN_IN: generate a valid authentification token,
+-   BOOKS: interact with the book objects,
+-   BEST_RATED: list the best 3 books in the DB,
