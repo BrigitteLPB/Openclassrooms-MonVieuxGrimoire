@@ -10,7 +10,7 @@ export const SignupMiddleware: ExpressMiddleware = {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            res.statusCode = 400;
+            res.status(400);
             res.json({
                 error: 'bad values for email or password. Expects not null strings.',
             });

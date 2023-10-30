@@ -1,6 +1,6 @@
 import { BookModel } from 'models/book';
 import { ExpressMiddleware, HTTPMethod } from 'utils/managers/api';
-import { s3FileStorageManager } from 'utils/managers/file_storage';
+import { S3FileStorage } from 'utils/managers/file_storage';
 
 export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
     method: HTTPMethod.GET,
@@ -8,6 +8,7 @@ export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
     middelware: [
         // get the book list
         async (req, res, next) => {
+            const s3Manager = new S3FileStorage();
             try {
                 const allBook = await BookModel.find()
                     .sort({
@@ -16,7 +17,7 @@ export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
                     .limit(3);
 
                 if (!allBook) {
-                    res.statusCode = 404;
+                    res.status(404);
                     return res.json({
                         error: 'can not list all the books',
                     });
@@ -26,11 +27,12 @@ export const ListBestRatingRatingMiddleware: ExpressMiddleware = {
                 res.locals.body = await Promise.all(
                     allBook.map(async (book) => ({
                         id: book._id,
+                        _id: book._id, // pour les relous du front-end
                         userId: book.userId,
                         title: book.title,
                         author: book.author,
-                        imageUrl: await s3FileStorageManager.getFileURL({
-                            bucketName: s3FileStorageManager.imageBucketName,
+                        imageUrl: await s3Manager.getFileURL({
+                            bucketName: s3Manager.imageBucketName,
                             filename: book.imageUrl,
                         }),
                         year: book.year,

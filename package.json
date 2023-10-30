@@ -10,7 +10,7 @@
         "watch": "nodemon -r dotenv/config --delay 5 build/src/app.js",
         "start-dev": "ts-node -r dotenv/config src/app.ts",
         "watch-dev": "nodemon -r dotenv/config --delay 5 src/app.ts",
-        "test": "yarn jest --setupFiles dotenv/config"
+        "test": "yarn jest --setupFiles dotenv/config --detectOpenHandles"
     },
     "devDependencies": {
         "@types/bcrypt": "^5.0.0",

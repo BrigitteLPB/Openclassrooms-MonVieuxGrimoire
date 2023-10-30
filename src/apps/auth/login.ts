@@ -11,7 +11,7 @@ export const LoginMiddleware: ExpressMiddleware = {
             const { email, password } = req.body;
 
             if (!email || !password) {
-                res.statusCode = 400;
+                res.status(400);
                 return res.json({
                     error: 'bad values for email or password. Expects not null strings.',
                 });
@@ -24,7 +24,7 @@ export const LoginMiddleware: ExpressMiddleware = {
                     user == null ||
                     !(await Hasher.validateHash(password, user.password))
                 ) {
-                    res.status(403);
+                    res.status(401);
                     return res.json({
                         error: 'can not connect with those credentials. Try again.',
                     });

@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import { CreateMiddleware } from 'apps/books/create';
-import { readFile } from 'fs/promises';
 import { get } from 'http';
+import { UserModel } from 'models/user';
+import { Types } from 'mongoose';
 import multer, { Multer } from 'multer';
 import request from 'supertest';
+import { Authorizer } from 'utils/jwt';
 import { ApiManager } from 'utils/managers/api';
 import { S3FileStorage } from 'utils/managers/file_storage';
 import { mongoManager } from 'utils/managers/mongo';
@@ -12,6 +14,7 @@ import { v4 } from 'uuid';
 let apiManager: ApiManager;
 
 let bucketName = '';
+let dbname = '';
 let multerManager: Multer;
 let fileStorageManager: S3FileStorage;
 
@@ -21,26 +24,26 @@ describe('Book create', () => {
         apiManager = new ApiManager();
 
         // mongo
-        await mongoManager.connect();
+        dbname = `test-${v4()}`;
+        await mongoManager.connect(dbname);
 
-        // minio
-        fileStorageManager = new S3FileStorage({
+        // S3 minio
+        bucketName = `test-${v4()}`;
+        S3FileStorage.initClient({
             host: process.env.MINIO_HOST || '',
             port: Number(process.env.MINIO_PORT) || 0,
             accessKey: process.env.MINIO_ACCESS_KEY || '',
             secretKey: process.env.MINIO_SECRET_KEY || '',
             imageBucketName: bucketName,
         });
+        await S3FileStorage.initBucketSafe({
+            bucketName: bucketName,
+        });
+        fileStorageManager = new S3FileStorage();
 
+        // add multer middleware
         multerManager = multer({
             storage: multer.memoryStorage(),
-        });
-
-        bucketName = `test-${v4()}`;
-
-        // add bucket
-        await fileStorageManager.initBucketSafe({
-            bucketName: bucketName,
         });
     });
 
@@ -55,6 +58,10 @@ describe('Book create', () => {
             objectList
         );
 
+        // remove the database
+        await mongoManager.client()?.connection.db.dropDatabase();
+        await mongoManager.client()?.disconnect();
+
         // remove bucket
         await fileStorageManager.minioClient.removeBucket(bucketName);
     });
@@ -64,13 +71,16 @@ describe('Book create', () => {
             await fileStorageManager.minioClient.bucketExists(bucketName)
         ).toBe(true);
 
-        CreateMiddleware.uri = `/${v4()}`;
-        CreateMiddleware.needAuth = false;
+        // add a new user
+        const userId = new Types.ObjectId();
+        await UserModel.create({
+            _id: userId,
+            email: 'my email',
+            password: 'my password',
+        });
 
         // set a basic express router
         apiManager.addMiddlewares([CreateMiddleware]);
-
-        console.debug('-1');
 
         // request the data
         const response = await request(apiManager.app)
@@ -81,15 +91,21 @@ describe('Book create', () => {
                     title: '',
                     author: '',
                     year: 2010,
-                    userId: 'aaaaaaaaa',
+                    userId: userId.toString(),
                     genre: '',
                 })
             )
-            .attach('image', './tests/books/data/image.png')
+            .attach('image', './tests/data/image.png')
             .set('Content-Type', 'multipart/form-data')
-            .expect(200);
+            .set(
+                'Authorization',
+                `Bearer ${Authorizer.generateToken({
+                    userId: userId.toString(),
+                })}`
+            );
 
-        console.debug('0');
+        console.debug(response.body);
+        expect(response.statusCode).toBe(200);
 
         // test imageURL
         const statusCode = await new Promise(function (resolve) {
@@ -97,30 +113,14 @@ describe('Book create', () => {
                 return resolve(res.statusCode);
             });
         });
-
-        console.debug(statusCode);
-
         expect(statusCode).toBe(200);
-
-        console.debug('1');
-
-        console.debug(
-            await fileStorageManager.minioClient
-                .listObjects(bucketName, undefined, true)
-                .toArray()
-        );
 
         // search the file on S3
         const s3File = await fileStorageManager.minioClient.getObject(
             bucketName,
-            `/${response.body.userId}/${response.body.id}.png`
+            `/${response.body.userId}/${response.body.id}.webp`
         );
 
-        console.debug('3');
-
-        // get the local file
-        const file = await readFile('./tests/utils/managers/data/image.png');
-
-        expect(s3File.read()).toEqual(file);
+        expect(s3File).not.toBeNull();
     });
 });

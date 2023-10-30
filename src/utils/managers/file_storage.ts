@@ -41,26 +41,13 @@ export interface FileStorage {
         bucketName: string;
         filename: string;
     }) => Promise<void>;
-
-    /**
-     * Send the image field of a multipart request to the S3
-     * Need bookId & userId in the res.locals
-     * @param req
-     * @param res
-     * @param next
-     */
-    processFileMiddleware: (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ) => Promise<void | Response<any, Record<string, any>>>;
 }
 
 export class S3FileStorage implements FileStorage {
-    readonly minioClient: Client;
-    readonly imageBucketName: string;
+    private static _client?: Client;
+    private static _imageBucketName?: string;
 
-    public constructor(args: {
+    public static initClient(args: {
         host: string;
         port: number;
         accessKey: string;
@@ -69,26 +56,38 @@ export class S3FileStorage implements FileStorage {
     }) {
         const { host, port, accessKey, secretKey, imageBucketName } = args;
 
-        this.imageBucketName = imageBucketName;
-
-        this.minioClient = new Client({
+        this._client = new Client({
             endPoint: host,
             port: port,
             accessKey: accessKey,
             secretKey: secretKey,
             useSSL: false,
         });
+        this._imageBucketName = imageBucketName;
+    }
+
+    public get minioClient() {
+        if (!S3FileStorage._client) {
+            throw Error(
+                'Minio client isnt initialize ! Use S3FileStorage.initClient before user'
+            );
+        }
+        return S3FileStorage._client;
+    }
+
+    public get imageBucketName() {
+        return S3FileStorage._imageBucketName || '';
     }
 
     /**
      * Initialize safely a bucket
      * @param args
      */
-    public async initBucketSafe(args: { bucketName: string }) {
+    public static async initBucketSafe(args: { bucketName: string }) {
         const { bucketName } = args;
 
-        if (!(await this.minioClient.bucketExists(bucketName))) {
-            await this.minioClient.makeBucket(bucketName);
+        if (!(await this._client?.bucketExists(bucketName))) {
+            await this._client?.makeBucket(bucketName);
         }
     }
 
@@ -129,7 +128,14 @@ export class S3FileStorage implements FileStorage {
         return await this.minioClient.removeObject(bucketName, filename);
     }
 
-    public async processFileMiddleware(
+    /**
+     * Send the image field of a multipart request to the S3
+     * Need bookId & userId in the res.locals
+     * @param req
+     * @param res
+     * @param next
+     */
+    public static async processFileMiddleware(
         req: Request,
         res: Response,
         next: NextFunction
@@ -160,8 +166,9 @@ export class S3FileStorage implements FileStorage {
             // uploading new image to S3
             const serverUri = `/${userId}/${id}.webp`;
 
-            await this.addFile({
-                bucketName: this.imageBucketName,
+            const s3Manager = new S3FileStorage();
+            await s3Manager.addFile({
+                bucketName: s3Manager.imageBucketName,
                 serverFilepath: serverUri,
                 localFileStream: ReadableStream.from(optimiseFile),
             });
@@ -172,15 +179,3 @@ export class S3FileStorage implements FileStorage {
         return next();
     }
 }
-
-export const s3FileStorageManager = new S3FileStorage({
-    host: process.env.MINIO_HOST || '',
-    port: Number(process.env.MINIO_PORT) || 0,
-    accessKey: process.env.MINIO_ACCESS_KEY || '',
-    secretKey: process.env.MINIO_SECRET_KEY || '',
-    imageBucketName: 'images',
-});
-
-s3FileStorageManager.initBucketSafe({
-    bucketName: 'images',
-});
