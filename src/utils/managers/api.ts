@@ -132,7 +132,7 @@ export class ApiManager {
                 const port = server_info.port;
 
                 console.log(
-                    'Example app listening at http://%s:%s',
+                    'Backend - Mon vieux grimoire - started at http://%s:%s',
                     host,
                     port
                 );
