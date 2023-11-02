@@ -11,7 +11,7 @@ export const SignupMiddleware: ExpressMiddleware = {
 
         if (!email || !password) {
             res.status(400);
-            res.json({
+            return res.json({
                 error: 'bad values for email or password. Expects not null strings.',
             });
         }
@@ -32,7 +32,7 @@ export const SignupMiddleware: ExpressMiddleware = {
         } catch (e: any) {
             console.log('Error:', e);
             res.status(500);
-            res.json({
+            return res.json({
                 error: 'can not create the user',
             });
         }

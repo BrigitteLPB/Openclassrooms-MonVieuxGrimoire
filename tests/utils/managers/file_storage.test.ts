@@ -142,7 +142,7 @@ describe('FileStorage', () => {
             },
             S3FileStorage.processFileMiddleware,
             async (_, res) => {
-                res.json({
+                return res.json({
                     imageUrl: res.locals.imageUri,
                 });
             }
