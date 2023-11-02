@@ -13,7 +13,7 @@ info:
 
 tags:
     - name: auth
-      description: Endpoints for user sign in and in
+      description: Endpoints for user sign in and login
     - name: books
       description: Endpoints for retrieving and modifying books
 
