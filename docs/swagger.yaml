@@ -121,9 +121,6 @@ paths:
                 '200':
                     $ref: '#/components/responses/BookListRespones'
 
-servers:
-    - url: https://petstore.swagger.io/v2
-
 components:
     securitySchemes:
         BearerAuth:
